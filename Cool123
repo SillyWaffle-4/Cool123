@@ -3,182 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chicken Mover</title>
-    <!-- Tailwind CSS CDN for easy styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Flying Chickens Everywhere!</title>
     <style>
-        /* Custom styles for the chicken animation */
         body {
-            overflow: hidden; /* Prevent scrollbars from appearing */
-            font-family: "Inter", sans-serif;
-            cursor: pointer; /* Indicate the body is clickable */
+            /* Set a background color/image */
+            background-color: skyblue;
+            /* Hide scrollbars */
+            overflow: hidden;
+            /* Ensure full-screen coverage */
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            /* Make the body the container for positioning */
+            position: relative;
         }
 
         .chicken {
+            /* Position absolutely so we can move them freely */
             position: absolute;
-            font-size: 3rem; /* Make the chicken emoji large */
-            /* No transform transition here, as movement is JS-driven */
-            pointer-events: none; /* Allow clicks to pass through the chicken to the body */
-            opacity: 1; /* Initially visible */
-            will-change: transform, opacity; /* Optimize for animation */
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3); /* Add a subtle shadow */
+            /* Size of the chicken image */
+            width: 80px;
+            height: 80px;
+            /* Ensure the chicken is on top of the background */
+            z-index: 10;
+            /* The image source (You'll need to replace this with a real chicken image URL) */
+            background-image: url('https://i.imgur.com/your-chicken-image.png'); /* **REPLACE THIS** */
+            background-size: contain;
+            background-repeat: no-repeat;
+            /* Initial position (will be set by JS) */
+            top: 50%;
+            left: 50%;
+            /* Smooth transition for movement */
+            transition: all 5s linear;
+            cursor: pointer;
+        }
+
+        /* Fallback for when no image is loaded - shows text */
+        .chicken::before {
+            content: '🐔'; /* A simple chicken emoji */
+            font-size: 60px;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-200 to-green-200 min-h-screen flex items-center justify-center relative">
-
-    <div id="message-box" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-xl text-center hidden z-50">
-        <p id="message-text" class="text-lg font-semibold text-gray-800"></p>
-        <button id="message-close-button" class="mt-4 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">OK</button>
-    </div>
-
-    <h1 class="text-4xl md:text-6xl font-extrabold text-gray-800 text-center drop-shadow-lg p-4 rounded-xl bg-white bg-opacity-70">Click Anywhere to Make Chickens Fly! 🐔</h1>
+<body>
 
     <script>
-        // Array to hold all active chicken data objects
-        let activeChickens = [];
+        const NUMBER_OF_CHICKENS = 15; // How many chickens you want
+        const moveInterval = 5000; // Time in milliseconds between each move (5 seconds)
 
-        // Function to show a custom message box instead of alert()
-        function showMessageBox(message) {
-            const messageBox = document.getElementById('message-box');
-            const messageText = document.getElementById('message-text');
-            const messageCloseButton = document.getElementById('message-close-button');
-
-            messageText.textContent = message;
-            messageBox.classList.remove('hidden');
-
-            messageCloseButton.onclick = () => {
-                messageBox.classList.add('hidden');
-            };
+        /**
+         * Generates a random number within a given range.
+         * @param {number} min - The minimum value.
+         * @param {number} max - The maximum value.
+         * @returns {number} The random number.
+         */
+        function getRandomNumber(min, max) {
+            return Math.random() * (max - min) + min;
         }
 
-        // Function to generate a random integer between min and max (inclusive)
-        function getRandomInt(min, max) {
-            return Math.floor(Math.random() * (max - min + 1)) + min;
+        /**
+         * Sets a new random position for a single chicken element.
+         * @param {HTMLElement} chicken - The chicken element to move.
+         */
+        function setRandomPosition(chicken) {
+            // Get screen dimensions minus the chicken's size (80px)
+            const newTop = getRandomNumber(0, window.innerHeight - 80);
+            const newLeft = getRandomNumber(0, window.innerWidth - 80);
+
+            // Apply the new position
+            chicken.style.top = `${newTop}px`;
+            chicken.style.left = `${newLeft}px`;
         }
 
-        // Function to create and animate a chicken
+        /**
+         * Creates a new chicken element and adds it to the body.
+         * @returns {HTMLElement} The newly created chicken element.
+         */
         function createChicken() {
             const chicken = document.createElement('div');
-            chicken.textContent = '🐔'; // Chicken emoji
             chicken.classList.add('chicken');
-            chicken.style.opacity = '1'; // Ensure the chicken is fully visible initially
-
-            // Define possible start corners and initial directions
-            // These values are slightly off-screen to give a "pop-up" effect
-            const corners = [
-                // Top-left to move towards bottom-right
-                { startX: -50, startY: -50, initialDx: 3 + Math.random() * 2, initialDy: 3 + Math.random() * 2 },
-                // Top-right to move towards bottom-left
-                { startX: window.innerWidth + 50, startY: -50, initialDx: -(3 + Math.random() * 2), initialDy: 3 + Math.random() * 2 },
-                // Bottom-left to move towards top-right
-                { startX: -50, startY: window.innerHeight + 50, initialDx: 3 + Math.random() * 2, initialDy: -(3 + Math.random() * 2) },
-                // Bottom-right to move towards top-left
-                { startX: window.innerWidth + 50, startY: window.innerHeight + 50, initialDx: -(3 + Math.random() * 2), initialDy: -(3 + Math.random() * 2) }
-            ];
-
-            // Select a random corner configuration
-            const randomCorner = corners[getRandomInt(0, corners.length - 1)];
-
-            // Initialize chicken's position and velocity
-            let x = randomCorner.startX;
-            let y = randomCorner.startY;
-            let dx = randomCorner.initialDx;
-            let dy = randomCorner.initialDy;
-
             document.body.appendChild(chicken);
-
-            // Get the actual width and height of the chicken element after it's in the DOM
-            // This is important for accurate collision detection
-            const chickenWidth = chicken.offsetWidth;
-            const chickenHeight = chicken.offsetHeight;
-
-            // Store all relevant data for this chicken
-            const chickenData = {
-                element: chicken,
-                x: x,
-                y: y,
-                dx: dx,
-                dy: dy,
-                width: chickenWidth,
-                height: chickenHeight
-            };
-            activeChickens.push(chickenData); // Add to the list of active chickens
-
-            // Set a timeout to remove the chicken after 10 seconds
-            setTimeout(() => {
-                // Start fading out the chicken
-                chicken.style.opacity = '0';
-                chicken.style.transition = 'opacity 1s ease-out'; // Apply fade-out transition
-
-                // Remove the chicken element from the DOM and the activeChickens array
-                // once the fade-out transition is complete
-                chicken.addEventListener('transitionend', () => {
-                    if (chicken.parentNode) { // Check if it's still in the DOM before removing
-                        chicken.remove();
-                        // Remove from the activeChickens array to stop animating it
-                        const index = activeChickens.indexOf(chickenData);
-                        if (index > -1) {
-                            activeChickens.splice(index, 1);
-                        }
-                    }
-                }, { once: true }); // Ensure this listener only fires once
-            }, 9000); // Start fade-out at 9 seconds, completing by 10 seconds
+            setRandomPosition(chicken); // Set initial position
+            return chicken;
         }
 
-        // Animation loop for all active chickens
-        function animateChickens() {
-            activeChickens.forEach(chickenData => {
-                let { element, x, y, dx, dy, width, height } = chickenData;
+        // --- Main Execution ---
 
-                // Update position based on velocity
-                x += dx;
-                y += dy;
+        // 1. Create all the chickens
+        const chickens = [];
+        for (let i = 0; i < NUMBER_OF_CHICKENS; i++) {
+            chickens.push(createChicken());
+        }
 
-                // Collision detection and bouncing off screen edges
-                // Reverse direction if hitting horizontal boundaries
-                if (x + width > window.innerWidth || x < 0) {
-                    dx *= -1; // Reverse horizontal direction
-                    // Adjust position to prevent sticking to the edge
-                    if (x < 0) x = 0;
-                    if (x + width > window.innerWidth) x = window.innerWidth - width;
-                }
-
-                // Reverse direction if hitting vertical boundaries
-                if (y + height > window.innerHeight || y < 0) {
-                    dy *= -1; // Reverse vertical direction
-                    // Adjust position to prevent sticking to the edge
-                    if (y < 0) y = 0;
-                    if (y + height > window.innerHeight) y = window.innerHeight - height;
-                }
-
-                // Apply the new position using CSS transform for performance
-                element.style.transform = `translate(${x}px, ${y}px)`;
-
-                // Update the chickenData object with new position and velocity
-                chickenData.x = x;
-                chickenData.y = y;
-                chickenData.dx = dx;
-                chickenData.dy = dy;
+        // 2. Start the continuous movement loop
+        function flyChickens() {
+            chickens.forEach(chicken => {
+                setRandomPosition(chicken);
             });
-
-            // Request the next animation frame to continue the loop
-            requestAnimationFrame(animateChickens);
         }
 
-        // Wait for the entire window to load before initializing the application
-        window.onload = function() {
-            const body = document.body;
+        // Move them instantly the first time
+        flyChickens(); 
 
-            // Add a click listener to the entire body to create chickens
-            body.addEventListener('click', createChicken);
-
-            // Display initial instructions to the user
-            showMessageBox("Click anywhere on the screen to make chickens appear and bounce around! They will disappear after 10 seconds.");
-
-            // Start the main animation loop
-            animateChickens();
-        };
+        // Then, set an interval to move them every 'moveInterval' milliseconds
+        setInterval(flyChickens, moveInterval); 
     </script>
 </body>
 </html>
